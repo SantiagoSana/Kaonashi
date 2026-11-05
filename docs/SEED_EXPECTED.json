@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-11-04T16:00:00Z",
+  "campaigns": {
+    "camp_coasters": {
+      "slug": "coasters",
+      "name": "Coaster Nights – Sake Bars",
+      "distributed": 1100,
+      "scans": 420,
+      "uniqueScans": 360,
+      "landingViews": 340,
+      "leads": 95,
+      "claims": 180,
+      "orders": 68,
+      "attributedRevenueMinor": 8160000,
+      "discountCostMinor": 1420000,
+      "spendMinor": 1875000,
+      "costPerOrderMinor": 27573,
+      "roas": 4.35,
+      "recommendedTag": "Scale"
+    },
+    "camp_flyers": {
+      "slug": "flyers",
+      "name": "Flyer Drop – Office Lunch",
+      "distributed": 1800,
+      "scans": 310,
+      "uniqueScans": 270,
+      "landingViews": 250,
+      "leads": 65,
+      "claims": 120,
+      "orders": 42,
+      "attributedRevenueMinor": 4620000,
+      "discountCostMinor": 693000,
+      "spendMinor": 1500000,
+      "costPerOrderMinor": 35714,
+      "roas": 3.08,
+      "recommendedTag": "Fix landing"
+    },
+    "camp_matsuri": {
+      "slug": "matsuri",
+      "name": "Matsuri Pop-Up Weekend",
+      "distributed": 2200,
+      "scans": 780,
+      "uniqueScans": 690,
+      "landingViews": 650,
+      "leads": 210,
+      "claims": 310,
+      "orders": 145,
+      "attributedRevenueMinor": 18850000,
+      "discountCostMinor": 3770000,
+      "spendMinor": 1050000,
+      "costPerOrderMinor": 7241,
+      "roas": 17.95,
+      "recommendedTag": "Scale"
+    }
+  }
+}

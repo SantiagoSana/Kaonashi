@@ -1,0 +1,6 @@
+{
+  "name": "Kaonashi Phygital Platform",
+  "description": "High-end Japanese dining & sushi-fusion phygital activation engine: BTL QR campaigns, digital menu, real-time KDS, loyalty, and attribution analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

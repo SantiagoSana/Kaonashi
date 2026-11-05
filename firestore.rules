@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // KAONASHI SECURITY POLICY (§2, §0.1 item 10)
+    // Server-side access only via Admin SDK/backend repositories.
+    // Deny all direct client SDK access to guarantee strict RBAC and pricing integrity.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

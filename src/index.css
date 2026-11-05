@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@layer base {
+  :root, [data-theme="kyoto"] {
+    --background: 11 12 16; /* #0B0C10 */
+    --surface: 20 23 29; /* #14171D */
+    --text: 244 241 234; /* #F4F1EA */
+    --muted: 169 173 181; /* #A9ADB5 */
+    --primary: 212 175 55; /* #D4AF37 Gold */
+    --on-primary: 11 12 16;
+    --secondary: 31 40 51; /* #1F2833 */
+    --accent: 230 57 70; /* #E63946 Crimson */
+    --radius: 12px;
+  }
+
+  [data-theme="tokyo"] {
+    --background: 7 6 13; /* #07060D */
+    --surface: 18 15 31; /* #120F1F */
+    --text: 245 243 255; /* #F5F3FF */
+    --muted: 179 174 203; /* #B3AECB */
+    --primary: 255 46 99; /* #FF2E63 Neon Pink */
+    --on-primary: 7 6 13;
+    --secondary: 27 21 48; /* #1B1530 */
+    --accent: 8 247 254; /* #08F7FE Cyan */
+    --radius: 12px;
+  }
+
+  [data-theme="edo"] {
+    --background: 26 17 11; /* #1A110B */
+    --surface: 42 27 18; /* #2A1B12 */
+    --text: 246 235 221; /* #F6EBDD */
+    --muted: 205 185 160; /* #CDB9A0 */
+    --primary: 200 121 58; /* #C8793A Warm Terracotta */
+    --on-primary: 26 17 11;
+    --secondary: 59 38 25; /* #3B2619 */
+    --accent: 233 196 106; /* #E9C46A */
+    --radius: 12px;
+  }
+
+  [data-theme="osaka"] {
+    --background: 247 247 245; /* #F7F7F5 */
+    --surface: 255 255 255; /* #FFFFFF */
+    --text: 20 22 26; /* #14161A */
+    --muted: 85 91 102; /* #555B66 */
+    --primary: 43 47 54; /* #2B2F36 Slate */
+    --on-primary: 255 255 255;
+    --secondary: 231 233 236; /* #E7E9EC */
+    --accent: 200 16 46; /* #C8102E Deep Red */
+    --radius: 12px;
+  }
+
+  body {
+    background-color: rgb(var(--background));
+    color: rgb(var(--text));
+    font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Shippori Mincho', 'Noto Serif JP', Georgia, serif;
+  }
+
+  .font-mono-numbers {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Background motifs (low-opacity Japanese patterns §3) */
+.bg-seigaiha {
+  background-image: radial-gradient(circle at 100% 150%, rgba(212, 175, 55, 0.04) 24px, transparent 25px);
+  background-size: 48px 24px;
+}
+
+.bg-asanoha {
+  background-image: radial-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
