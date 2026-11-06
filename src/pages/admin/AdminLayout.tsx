@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useApp } from '../../context/AppContext';
 import { StaffRole } from '../../lib/types';
@@ -20,49 +20,44 @@ import {
   Home,
   Tag,
   FileSpreadsheet,
+  Database,
 } from 'lucide-react';
 
 export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [location, setLocation] = useLocation();
-  const { session, setSession, logout, activeBranch, setActiveBranch, branches, t } = useApp();
+  const { session, sessionLoaded, logout, activeBranch, setActiveBranch, branches, t, can } = useApp();
 
-  const navItems = [
-    { href: '/admin/dashboard', label: t('admin.dashboard'), icon: LayoutDashboard },
-    { href: '/admin/kds', label: t('admin.kds'), icon: Utensils },
-    { href: '/admin/orders', label: t('admin.orders'), icon: ClipboardList },
-    { href: '/admin/reservations', label: t('admin.reservations'), icon: Calendar },
-    { href: '/admin/menu', label: t('admin.menu'), icon: Layers },
-    { href: '/admin/promotions', label: t('admin.promotions'), icon: Tag },
-    { href: '/admin/data-hub', label: t('admin.dataHub'), icon: FileSpreadsheet },
-    { href: '/admin/marketing/campaigns', label: t('admin.marketing'), icon: Megaphone },
-    { href: '/admin/marketing/qr', label: t('admin.qr'), icon: QrCode },
-    { href: '/admin/marketing/analytics', label: t('admin.analytics'), icon: BarChart3 },
-    { href: '/admin/redeem', label: t('admin.redeem'), icon: CheckSquare },
-    { href: '/admin/settings/branding', label: t('admin.branding'), icon: Palette },
-    { href: '/admin/audit', label: t('admin.audit'), icon: ShieldCheck },
+  // Each entry lists the permissions that unlock it; the server enforces the same rules on every API call.
+  const navItems: { href: string; label: string; icon: any; perms: string[] }[] = [
+    { href: '/admin/dashboard', label: t('admin.dashboard'), icon: LayoutDashboard, perms: ['analytics:sales', 'analytics:btl', 'analytics:inventory'] },
+    { href: '/admin/analytics', label: t('admin.dataAnalytics'), icon: Database, perms: ['analytics:sales', 'analytics:btl', 'analytics:customers', 'analytics:inventory'] },
+    { href: '/admin/kds', label: t('admin.kds'), icon: Utensils, perms: ['kds:full'] },
+    { href: '/admin/orders', label: t('admin.orders'), icon: ClipboardList, perms: ['orders:read'] },
+    { href: '/admin/reservations', label: t('admin.reservations'), icon: Calendar, perms: ['reservations:read'] },
+    { href: '/admin/menu', label: t('admin.menu'), icon: Layers, perms: ['menu:toggle_86', 'menu:edit_price', 'menu:create'] },
+    { href: '/admin/promotions', label: t('admin.promotions'), icon: Tag, perms: ['promotions:read'] },
+    { href: '/admin/data-hub', label: t('admin.dataHub'), icon: FileSpreadsheet, perms: ['data_hub:export_all', 'data_hub:export_metrics', 'data_hub:import_all'] },
+    { href: '/admin/marketing/campaigns', label: t('admin.marketing'), icon: Megaphone, perms: ['campaigns:read'] },
+    { href: '/admin/marketing/qr', label: t('admin.qr'), icon: QrCode, perms: ['qr:generate'] },
+    { href: '/admin/redeem', label: t('admin.redeem'), icon: CheckSquare, perms: ['coupons:validate_in_person'] },
+    { href: '/admin/settings/branding', label: t('admin.branding'), icon: Palette, perms: ['branding:manage'] },
+    { href: '/admin/audit', label: t('admin.audit'), icon: ShieldCheck, perms: ['audit:read'] },
   ];
+  const visibleNav = navItems.filter((n) => n.perms.some(can));
+  const current = navItems.find((n) => location === n.href || location.startsWith(`${n.href}/`));
+  const allowedHere = !current || current.perms.some(can);
 
-  // Quick switch role in Demo Mode (§10.1, §9.6)
-  const handleQuickRoleSwitch = async (role: StaffRole) => {
-    const roleNames: Record<StaffRole, { name: string; email: string }> = {
-      sysmaster: { name: 'Sysmaster Admin', email: 'master@kaonashi.internal' },
-      kitchen_manager: { name: 'Kenji (Itamae)', email: 'kitchen@kaonashi.internal' },
-      marketing_manager: { name: 'Elena (BTL Lead)', email: 'marketing@kaonashi.internal' },
-      ops_subadmin: { name: 'Carlos (Ops)', email: 'ops@kaonashi.internal' },
-      reception: { name: 'Sayuri (Host)', email: 'reception@kaonashi.internal' },
-      customer: { name: 'Mia (Cliente)', email: 'mia_guest@example.com' },
-    };
+  useEffect(() => {
+    if (!sessionLoaded) return;
+    if (!session || session.kind !== 'staff') setLocation(`/login?returnTo=${encodeURIComponent(location)}`);
+  }, [sessionLoaded, session, location]);
 
-    const newSession = {
-      kind: 'staff' as const,
-      role,
-      userId: `user_${role}`,
-      name: roleNames[role].name,
-      email: roleNames[role].email,
-      branchIds: ['branch_central'],
-    };
+  if (!sessionLoaded || !session || session.kind !== 'staff') {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-[rgb(var(--muted))]">{t('auth.checking')}</div>;
+  }
 
-    setSession(newSession);
+  const roleLabels: Record<string, string> = {
+    sysmaster: 'Sysmaster', kitchen_manager: 'Kitchen Manager (Itamae)', marketing_manager: 'Marketing Manager', ops_subadmin: 'Ops Sub-admin', reception: 'Reception',
   };
 
   return (
@@ -83,27 +78,10 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             </Link>
           </div>
 
-          {/* Active Role & Quick Switcher (§9.6) */}
-          <div className="bg-[rgb(var(--background))] border border-white/5 p-3 rounded-xl space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[rgb(var(--muted))] text-[10px] uppercase font-bold tracking-wider">
-                Rol Activo
-              </span>
-              <span className="text-[11px] font-mono font-bold text-[rgb(var(--primary))]">
-                {session?.role || 'sysmaster'}
-              </span>
-            </div>
-            <select
-              value={session?.role || 'sysmaster'}
-              onChange={(e) => handleQuickRoleSwitch(e.target.value as StaffRole)}
-              className="w-full bg-[rgb(var(--surface))] border border-white/10 rounded-lg text-xs py-1.5 px-2 text-[rgb(var(--text))] focus:outline-none focus:border-[rgb(var(--primary))]"
-            >
-              <option value="sysmaster">Sysmaster (Acceso Total)</option>
-              <option value="kitchen_manager">Kitchen Manager (Itamae)</option>
-              <option value="marketing_manager">Marketing Manager</option>
-              <option value="ops_subadmin">Ops Sub-admin</option>
-              <option value="reception">Reception / Host</option>
-            </select>
+          {/* Signed-in staff member (role comes from the server session) */}
+          <div className="bg-[rgb(var(--background))] border border-white/5 p-3 rounded-xl space-y-0.5">
+            <p className="text-xs font-semibold text-[rgb(var(--text))] truncate">{session.name}</p>
+            <p className="text-[11px] font-mono text-[rgb(var(--primary))]">{roleLabels[session.role] || session.role}</p>
           </div>
 
           {/* Branch Switcher */}
@@ -129,7 +107,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {visibleNav.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.href || location.startsWith(`${item.href}/`);
               return (
@@ -152,7 +130,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
 
         {/* Footer */}
         <div className="p-4 border-t border-white/5 flex items-center justify-between text-xs">
-          <span className="text-[10px] text-[rgb(var(--muted))] font-mono">v7.0 AI-Build</span>
+          <span className="text-[10px] text-[rgb(var(--muted))] font-mono">Kaonashi · Postgres</span>
           <button
             onClick={logout}
             className="flex items-center gap-1 text-[rgb(var(--muted))] hover:text-[rgb(var(--accent))]"
@@ -164,7 +142,16 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
       </aside>
 
       {/* Main Admin View Content */}
-      <main className="flex-1 overflow-y-auto min-h-screen p-4 sm:p-8">{children}</main>
+      <main className="flex-1 overflow-y-auto min-h-screen p-4 sm:p-8 min-w-0">
+        {allowedHere ? (
+          children
+        ) : (
+          <div className="max-w-md space-y-3">
+            <p className="text-sm">{t('auth.forbidden')}</p>
+            {visibleNav[0] && <Link href={visibleNav[0].href} className="inline-flex min-h-[40px] items-center px-4 rounded-xl bg-[rgb(var(--primary))] text-[rgb(var(--on-primary))] text-xs font-bold">{t('auth.backToPanel')}</Link>}
+          </div>
+        )}
+      </main>
     </div>
   );
 };

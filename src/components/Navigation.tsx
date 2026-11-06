@@ -90,21 +90,21 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
 
       {/* Main Global Header */}
       <header className="sticky top-0 z-30 bg-[rgb(var(--surface))]/90 backdrop-blur-md border-b border-white/5 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo Brand */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full border border-[rgb(var(--primary))]/40 flex items-center justify-center relative overflow-hidden bg-[rgb(var(--background))] group-hover:border-[rgb(var(--primary))] transition-colors">
+          <Link href="/" className="flex items-center gap-3 group min-w-0 shrink">
+            <div className="hidden sm:flex w-10 h-10 rounded-full border border-[rgb(var(--primary))]/40 items-center justify-center relative overflow-hidden bg-[rgb(var(--background))] group-hover:border-[rgb(var(--primary))] transition-colors">
               <div className="w-7 h-7 rounded-full border border-[rgb(var(--primary))] border-t-transparent animate-[spin_12s_linear_infinite]" />
               <div className="absolute w-2 h-2 rounded-full bg-[rgb(var(--accent))]" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-baseline gap-1.5">
-                <span className="font-display font-bold text-xl tracking-wider text-[rgb(var(--text))]">
+                <span className="font-display font-bold text-base sm:text-xl tracking-wider text-[rgb(var(--text))]">
                   KAONASHI
                 </span>
-                <span className="text-xs text-[rgb(var(--primary))] font-display">顔無</span>
+                <span className="hidden sm:inline text-xs text-[rgb(var(--primary))] font-display">顔無</span>
               </div>
-              <span className="text-[10px] text-[rgb(var(--muted))] uppercase tracking-widest -mt-1">
+              <span className="hidden sm:block text-[10px] text-[rgb(var(--muted))] uppercase tracking-widest -mt-1">
                 Phygital Izakaya
               </span>
             </div>
@@ -146,7 +146,7 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
           </nav>
 
           {/* Right Action Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Branch Indicator */}
             <div className="hidden lg:flex items-center gap-1.5 text-xs text-[rgb(var(--muted))] bg-[rgb(var(--background))] border border-white/5 px-2.5 py-1 rounded-md">
               <MapPin size={12} className="text-[rgb(var(--primary))]" />
@@ -160,7 +160,7 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
                   key={loc}
                   onClick={() => setLocale(loc)}
                   aria-current={locale === loc ? 'true' : undefined}
-                  className={`px-2 py-1 uppercase transition-colors ${
+                  className={`px-1.5 sm:px-2 py-1 uppercase transition-colors ${
                     locale === loc
                       ? 'bg-[rgb(var(--primary))] text-[rgb(var(--on-primary))] font-bold'
                       : 'text-[rgb(var(--muted))] hover:text-white'
@@ -175,7 +175,7 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value as DisplayCurrency)}
-              className="bg-[rgb(var(--background))] border border-white/10 text-xs text-[rgb(var(--text))] px-2 py-1 rounded-md font-mono focus:outline-none focus:border-[rgb(var(--primary))]"
+              className="bg-[rgb(var(--background))] border border-white/10 text-xs text-[rgb(var(--text))] px-1 sm:px-2 py-1 rounded-md font-mono focus:outline-none focus:border-[rgb(var(--primary))]"
               aria-label="Select display currency"
             >
               <option value="COP">COP ($)</option>
@@ -206,19 +206,19 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
                   className="flex items-center gap-1.5 text-xs bg-[rgb(var(--background))] border border-white/10 px-2.5 py-1.5 rounded-md hover:border-white/20"
                 >
                   <User size={13} className="text-[rgb(var(--primary))]" />
-                  <span className="max-w-[80px] truncate">{session.name}</span>
+                  <span className="hidden sm:inline max-w-[80px] truncate">{session.name}</span>
                 </Link>
                 <button
                   onClick={logout}
                   className="text-xs text-[rgb(var(--muted))] hover:text-white"
-                  title="Cerrar sesión"
+                  title={t('auth.signOut')} aria-label={t('auth.signOut')}
                 >
                   <X size={14} />
                 </button>
               </div>
             ) : (
               <Link
-                href="/login"
+                href="/account/login"
                 className="text-xs text-[rgb(var(--muted))] hover:text-white flex items-center gap-1 border border-white/10 px-2 py-1 rounded-md"
               >
                 <User size={13} />
@@ -268,13 +268,13 @@ export const Navigation: React.FC<{ onOpenCart: () => void }> = ({ onOpenCart })
           <span>{t('nav.rewards')}</span>
         </Link>
         <Link
-          href="/admin/kds"
+          href={session?.kind === 'staff' ? '/admin/dashboard' : '/account'}
           className={`flex flex-col items-center gap-0.5 p-1.5 text-[10px] ${
-            location.startsWith('/admin') ? 'text-[rgb(var(--primary))] font-semibold' : 'text-[rgb(var(--muted))]'
+            location.startsWith('/account') || location.startsWith('/admin') ? 'text-[rgb(var(--primary))] font-semibold' : 'text-[rgb(var(--muted))]'
           }`}
         >
           <Clock size={18} />
-          <span>KDS</span>
+          <span>{t('account.orders')}</span>
         </Link>
       </nav>
     </>

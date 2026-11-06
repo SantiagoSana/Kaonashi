@@ -38,10 +38,14 @@ export interface AppContextType {
   notification: string | null;
   showNotification: (msg: string) => void;
 
-  // Session
-  session: { kind: 'customer' | 'staff'; role: StaffRole; email: string; name: string; userId: string } | null;
+  // Session (always the server's view; never trusted for authorization)
+  session: { kind: 'customer' | 'staff'; role: StaffRole; email: string; name: string; userId: string; permissions?: string[]; branchIds?: string[] } | null;
+  sessionLoaded: boolean;
   setSession: (s: any) => void;
+  refreshSession: () => Promise<any>;
   logout: () => Promise<void>;
+  can: (permission: string) => boolean;
+  config: { demoMode: boolean; backend: string; ephemeral: boolean; googleClientId: string | null; emailSimulated: boolean } | null;
 
   // Translation helper
   t: (keyPath: string, params?: Record<string, string | number>) => string;
@@ -77,6 +81,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [appliedCouponCode, setAppliedCouponCode] = useState<string>('');
   const [session, setSession] = useState<any>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [config, setConfig] = useState<AppContextType['config']>(null);
+
+  const refreshSession = async () => {
+    try {
+      const r = await fetch('/api/auth/session', { credentials: 'same-origin' });
+      const data = await r.json();
+      setSession(data.session || null);
+      return data.session || null;
+    } catch {
+      return null;
+    } finally {
+      setSessionLoaded(true);
+    }
+  };
+
+  const loadWallet = () =>
+    fetch('/api/wallet')
+      .then((r) => r.json())
+      .then((data) => {
+        const c = data.coupons?.[0];
+        setActiveCoupon(c || null);
+        setAppliedCouponCode(c?.code || '');
+      })
+      .catch(() => {});
+
+  // Other tabs sign in/out → this tab follows within a moment (§10.1b).
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const ch = new BroadcastChannel('kns-auth');
+    ch.onmessage = () => {
+      setCart([]);
+      refreshSession();
+      loadWallet();
+    };
+    return () => ch.close();
+  }, []);
 
   // Initialize from cookies and check current session
   useEffect(() => {
@@ -94,26 +135,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrencyState(cookies.kns_currency as DisplayCurrency);
     }
 
-    // Check auth session
-    fetch('/api/auth/session')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.session) setSession(data.session);
-      })
-      .catch(() => {});
-
-    // Check active campaign coupons
+    refreshSession();
+    loadWallet();
+    fetch('/api/config').then((r) => r.json()).then(setConfig).catch(() => {});
     fetch('/api/campaigns')
       .then((r) => r.json())
       .then((data) => {
-        if (data.branches) setBranches(data.branches);
-        if (data.coupons && data.coupons.length > 0) {
-          // If a coupon code is stored in URL or wallet, attach it
-          const firstActive = data.coupons.find((c: Coupon) => c.status === 'active');
-          if (firstActive) {
-            setActiveCoupon(firstActive);
-            setAppliedCouponCode(firstActive.code);
-          }
+        if (data.branches?.length) {
+          setBranches(data.branches);
+          setActiveBranch((prev) => data.branches.find((b: Branch) => b.id === prev.id) || data.branches[0]);
         }
       })
       .catch(() => {});
@@ -208,10 +238,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     setSession(null);
-    window.location.reload();
+    setCart([]);
+    setActiveCoupon(null);
+    setAppliedCouponCode('');
+    try {
+      new BroadcastChannel('kns-auth').postMessage('logout');
+    } catch {}
+    window.location.href = '/';
   };
+
+  const can = (permission: string) => Boolean(session?.kind === 'staff' && session.permissions?.includes(permission));
 
   const t = (keyPath: string, params?: Record<string, string | number>) => {
     return getTranslation(locale, keyPath, params);
@@ -244,8 +282,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         notification,
         showNotification,
         session,
+        sessionLoaded,
         setSession,
+        refreshSession,
         logout,
+        can,
+        config,
         t,
       }}
     >

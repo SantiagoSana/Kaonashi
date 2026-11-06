@@ -1,99 +1,111 @@
-# 🏮 Kaonashi Phygital Platform — Master Build v7
+# 🏮 Kaonashi — Plataforma phygital
 
-Kaonashi is a high-end Japanese and sushi-fusion restaurant phygital activation engine. Below-The-Line (BTL) marketing in the physical world (flyers, table tents, coasters, takeaway boxes, pop-up events, street teams) drives guests via signed QR codes into a contextual mobile web experience that converts directly into orders, reservations, and loyalty rewards—with end-to-end attribution.
+Restaurante japonés de alta gama donde el marketing físico (portavasos, flyers, table tents, cajas para llevar, eventos) lleva a los clientes por un QR firmado hasta pedidos y reservas. Cada paso queda atribuido y medido.
 
----
+**Despliegue en Vercel:** sigue [`docs/DEPLOY_VERCEL.md`](docs/DEPLOY_VERCEL.md).
 
-## 🏗️ Architecture Overview
+## Qué incluye
+
+- **Login real y seguro**
+  - Personal: usuario y contraseña (scrypt), sesiones guardadas en Postgres y revocables, bloqueo progresivo tras 5 intentos fallidos (429 + `Retry-After`), roles con permisos verificados en el servidor en cada ruta.
+  - Clientes: código de 6 dígitos por e-mail (Resend, o buzón simulado en demo) y **Google** (Google Identity Services, token verificado en el servidor). Comprar como invitado siempre funciona.
+  - Cerrar sesión revoca la sesión en el servidor y sincroniza las demás pestañas.
+- **Análisis de datos** (`/admin/analytics`): todo se calcula con SQL sobre los registros crudos.
+  - **Ventas y demanda:** ingresos diarios BTL vs orgánico, mapa de calor día × hora con cocineros sugeridos, matriz BCG del menú con acción sugerida, ingresos por categoría.
+  - **Marketing BTL:** embudo de 9 etapas, ROAS y ROAS neto, costo por pedido, ranking de puntos de contacto con etiqueta Escalar / Mejorar landing / Detener, escaneos por tipo de pieza, mapa de calor de escaneos, rendimiento de cupones, modelo de atribución de primer o último toque.
+  - **Clientes:** segmentos RFM, CLV, retención por cohorte mensual, nuevos vs recurrentes, mejores clientes con datos enmascarados.
+  - **Inventario:** días de cobertura, pronóstico de 7 días (promedio ponderado de los últimos 4 días iguales de la semana), cantidad y fecha de pedido, riesgo de merma por lote.
+  - Filtros por rango de fechas y exportación CSV de cada vista (con defensa contra inyección de fórmulas).
+- **Histórico de demostración grande:** al primer arranque se generan ≈120 días con unos 15.000 pedidos, 22.000 escaneos de QR, 67.000 eventos del embudo, 2.000 clientes y 4.400 leads. El embudo se simula sesión por sesión, así que las cifras de escaneo, leads, pedidos, ingresos y ROAS son coherentes entre sí. La generación es determinista (semilla fija).
+- **Circuito BTL completo:** QR firmado (HMAC) → landing → lead y cupón en billetera → menú → checkout con precios recalculados en el servidor → cocina (KDS) → seguimiento en vivo → embudo.
+
+## Arquitectura
 
 ```mermaid
-graph TD
-    A[Physical Touchpoint: Coaster / Flyer / Table Tent] -->|Scans QR| B[Resolver /r/:code]
-    B -->|HMAC Verification & kns_attr Cookie| C[Campaign Landing /c/:slug]
-    C -->|Auto-Claim to kns_wallet| D[Digital Menu /menu]
-    D -->|Add to Cart & Recomputed Pricing| E[Checkout /checkout]
-    E -->|Server Validation & Hanko Stamp| F[Realtime Order Tracking /order/:id]
-    E -->|SSE Event Broadcast| G[Kitchen Display System /admin/kds]
-    E -->|Rollup Counter Attribution| H[BTL Analytics & Leaderboard /admin/marketing/analytics]
+flowchart LR
+  subgraph Vercel
+    CDN[CDN: SPA React + Vite]
+    FN["Función Node 22<br/>Express API + /r/:code"]
+    CRON[Vercel Cron]
+  end
+  DB[(Neon Postgres)]
+  G[Google Identity]
+  R[Resend e-mail]
+  U[Navegador / celular] --> CDN
+  U -- /api/*, /r/* --> FN
+  FN --> DB
+  FN -. verifica token .-> G
+  FN -. código OTP .-> R
+  CRON -- /api/cron/tick --> FN
 ```
 
----
+| Carpeta | Contenido |
+| :--- | :--- |
+| `src/server/app.ts` | API Express: auth, pedidos, cupones, QR, analíticas, exportaciones |
+| `src/server/security.ts` | Sesiones, permisos, límites de intentos, auditoría encadenada, OTP, Google |
+| `src/server/analytics.ts` | Consultas SQL de ventas, BTL, clientes e inventario |
+| `src/server/store.ts`, `db.ts` | Almacén de documentos JSONB sobre Postgres (Neon en Vercel, PGlite en local) |
+| `src/server/seed.ts` | Generador del histórico de demostración |
+| `src/pages/admin/DataAnalytics.tsx` | Página de análisis de datos |
+| `src/pages/auth/*` | Login de personal y de clientes |
+| `scripts/build-vercel.mjs` | Empaqueta todo en `.vercel/output` |
+| `dev-server.ts` | Servidor local (misma API + Vite) |
 
-## 🚀 Quickstart & Zero-Config Boot
+Los datos viven en una tabla `docs (collection, id, data jsonb)` con índices de expresión en los campos que se consultan (fecha y estado de pedidos, código de cupón, e-mail del cliente, etc.), más tablas propias para sesiones, límites de intentos, códigos de acceso y auditoría.
 
-The application runs with **zero mandatory secrets** in development. On first boot, demo data seeds automatically:
+## Correr en local
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start the full-stack server (Node Express + Vite)
-npm run dev
-
-# 3. Run unit tests
-npm test
-
-# 4. Run BTL Loop Verification Script
-npx tsx scripts/verify-btl-loop.ts
+npm install --legacy-peer-deps
+npm run dev          # http://localhost:3000 — sin configurar nada
 ```
 
-The app will be accessible at `http://localhost:3000`.
+Sin `DATABASE_URL` se usa un Postgres embebido (PGlite) guardado en `./.data/pglite`. Para usar Neon desde local, define `DATABASE_URL`.
 
----
+### Cuentas de demostración
 
-## 👥 Demo Staff Credentials (§10.1)
+Solo si **no** definiste `ENV_MASTER_SEED` / `DEMO_STAFF_PASSWORD` (en un despliegue público, defínelas):
 
-| Role | Username | Password | Permitted Scope |
+| Rol | Usuario | Contraseña | Ve |
 | :--- | :--- | :--- | :--- |
-| **Sysmaster** | `kaonashi_sysmaster` | `KaonashiMaster2026!` | Full administrative access, audit log, price editing |
-| **Kitchen Manager (Itamae)** | `itamae_lead` | `ItamaeKitchen2026!` | KDS operations, 86 stock toggle, prep times |
-| **Marketing Manager** | `marketing_lead` | `BtlMarketing2026!` | BTL campaigns, QR wizard, lead capture, analytics |
-| **Ops Sub-Admin** | `ops_lead` | `OpsLogistics2026!` | Logistics, orders, table reservations |
-| **Reception / Host** | `reception_lead` | `HostReception2026!` | In-person coupon redemption, table check-in |
+| Sysmaster | `kaonashi_sysmaster` | `KaonashiMaster2026!` | Todo |
+| Cocina (Itamae) | `itamae_lead` | `ItamaeKitchen2026!` | KDS, menú (86), inventario |
+| Marketing | `marketing_lead` | `BtlMarketing2026!` | Campañas, QR, analítica BTL y clientes |
+| Operaciones | `ops_lead` | `OpsLogistics2026!` | Pedidos, reservas, ventas, inventario |
+| Recepción | `reception_lead` | `HostReception2026!` | Pedidos, reservas, canje en barra |
 
----
+Clientes: `/account/login` → "Google (SIMULADO)" o cualquier e-mail (el código aparece en pantalla).
 
-## 🗺️ Routing Map (§4)
+## Verificación
 
-- `/`: BTL-aware homepage with hero and branch status
-- `/menu`: Digital menu with dietary & allergen filters, dish cards, modal detail
-- `/checkout`: Checkout with table detection, takeaway, delivery, and Hanko seal confirmation
-- `/order/:id`: Live 5-stage order tracker with SSE updates and stylized delivery map
-- `/reservations`: Interactive SVG floor plan with numbered counter seats and deposit
-- `/rewards`: Loyalty tiers (Nigiri Explorer, Itamae VIP, Omakase Master), animated ensō ring, secret menu
-- `/c/:slug`: BTL campaign landing page with perforated ticket and lead capture
-- `/r/:code`: Cryptographic QR resolver (HMAC-SHA256)
-- `/redeem`: Customer manual promo code redemption
-- `/u/:token`: One-click unsubscribe and GDPR data erasure
-- `/login`: Staff portal login with rate-limiting protection
-- `/admin/dashboard`: Executive KPI row, demand heatmap 7x24, CLV segments, BCG matrix
-- `/admin/kds`: Real-time Kitchen Display System with SLA colors and To-Confirm lane
-- `/admin/marketing/campaigns`: Campaign management, touchpoints, distribution logs, cost entries
-- `/admin/marketing/qr`: 5-step QR generator wizard with live preview and SVG export
-- `/admin/marketing/analytics`: 10-stage funnel and touchpoint leaderboard with Scale/Fix/Stop tags
-- `/admin/redeem`: In-person coupon validation with bill amount input and walk-in attribution
-- `/admin/menu`: Catalog editing, price modifications with before/after audit, 86 toggle
-- `/admin/settings/branding`: Kyoto Zen, Tokyo Neon, Edo Tradition, Osaka Minimal themes
-- `/admin/audit`: Append-only hash-chained audit log viewer with cryptographic verification
+```bash
+npm run typecheck                         # TypeScript sin errores
+npm test                                  # 14 pruebas: precios, QR, CSV, i18n, seguridad e integración con Postgres
+npm run verify                            # circuito BTL completo contra la app en marcha (11 comprobaciones)
+npx tsx scripts/security-smoke-test.ts    # fuerza bruta, permisos, QR alterado, exportaciones
+npx tsx scripts/verify-app.ts             # rutas en ES/EN/JA y 4 monedas
+```
 
----
+Los scripts aceptan `APP_BASE_URL` para probar un despliegue.
 
-## 🛡️ Security Guarantees (OWASP Top 10)
+## Seguridad (resumen)
 
-1. **Centralized RBAC**: Enforced via `authorize(ctx, permission, resource)` choke point.
-2. **Pricing Integrity**: Server completely recomputes cart lines, taxes, and discounts from database prices.
-3. **Audit Log Chain**: Each entry is hashed via `SHA-256(prevHash + canonicalJSON)` with a verification engine.
-4. **QR Durability**: Cryptographic HMAC signature covers `v1|shortCode|touchpointId`, allowing campaign dates, destinations, and limits to be modified without reprinting physical collateral.
-5. **Rate Limiting**: Sliding window protection against brute-force and scraping.
+- Toda ruta de administración exige sesión de personal y el permiso del rol; un acceso denegado responde 403 y queda auditado.
+- Precios, descuentos, impuestos y stock se recalculan en el servidor dentro de una transacción; los montos enviados por el cliente se ignoran.
+- La mesa solo se acepta desde el QR firmado; una mesa escrita a mano queda en `pending_confirmation`.
+- Cupones: validez, tope total, límite por cliente y canje atómico (20 canjes simultáneos con tope 5 → exactamente 5).
+- Límites: login, OTP, pedidos (5/h por teléfono, 10/h por IP), leads, escaneos, eventos y chat.
+- Auditoría append-only encadenada con SHA-256 y verificación de integridad.
+- Los secretos que falten en desarrollo se generan una vez y se guardan en la base; en producción la app no arranca sin ellos.
 
----
+## Estado y pendientes
 
-## 📋 Phase Status & Next Steps
+Hecho: login de personal y clientes, protección de la API, Postgres (Neon/PGlite), histórico grande, análisis de datos, panel ejecutivo con datos reales, despliegue en Vercel.
 
-- **Phase 1: Scan-to-Order BTL Core Loop**: **100% COMPLETE & VERIFIED**
-  - Proven by `scripts/verify-btl-loop.ts`, `scripts/verify-app.ts`, and `scripts/security-smoke-test.ts`.
-  - All acceptance criteria tagged [P1] pass.
-- **Phase 2 & 3 Enhancements**:
-  - Live Gemini API Concierge streaming drawer.
-  - Live Stripe Elements integration when keys provided.
-  - Native Excel `.xlsx` multi-sheet imports and exports via Data Hub.
+Pendiente o simulado:
+
+- **Pagos:** Stripe no está conectado; el pago en línea es simulado y el pago en el local queda `unpaid`.
+- **TOTP (MFA) del personal:** no implementado; las cuentas usan solo contraseña.
+- **Correos y Google** funcionan de verdad solo al configurar `RESEND_API_KEY` y `GOOGLE_CLIENT_ID`.
+- **Pantallas heredadas de la versión de AI Studio:** Personalización visual, Centro de Datos y Generador de QR conservan su interfaz original; sus llamadas a la API ya están protegidas, pero no se auditaron a fondo.
+- **Instalación:** `npm install` necesita `--legacy-peer-deps` por un conflicto de versiones entre Vite 8 y esbuild (ya configurado en `vercel.json`).
