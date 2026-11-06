@@ -279,7 +279,9 @@
     "staffSessionOnCustomer": "You are signed in as staff. Sign out to use a customer account.",
     "checking": "Checking session…",
     "forbidden": "Your role cannot access this section.",
-    "backToPanel": "Back to the panel"
+    "backToPanel": "Back to the panel",
+    "terms": "Terms",
+    "privacy": "Privacy"
   },
   "account": {
     "title": "My account",

@@ -79,6 +79,7 @@ export async function createApp() {
       ephemeral: db.ephemeral,
       googleClientId: env.GOOGLE_CLIENT_ID || null,
       emailSimulated: emailIsSimulated(),
+      privacyContact: env.PRIVACY_CONTACT_EMAIL || null,
     });
   }));
 

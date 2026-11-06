@@ -279,7 +279,9 @@
     "staffSessionOnCustomer": "Tienes una sesión de personal abierta. Ciérrala para usar una cuenta de cliente.",
     "checking": "Verificando sesión…",
     "forbidden": "Tu rol no tiene acceso a esta sección.",
-    "backToPanel": "Volver al panel"
+    "backToPanel": "Volver al panel",
+    "terms": "Términos",
+    "privacy": "Privacidad"
   },
   "account": {
     "title": "Mi cuenta",

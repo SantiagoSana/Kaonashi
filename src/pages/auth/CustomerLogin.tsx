@@ -255,7 +255,12 @@ export const CustomerLogin: React.FC<{ step: 'login' | 'verify' }> = ({ step }) 
             {pending ? t('auth.sending') : t('auth.sendCode')}
           </button>
         </form>
-        <p className="text-[11px] text-[rgb(var(--muted))]">{t('auth.termsNotice')}</p>
+        <p className="text-[11px] text-[rgb(var(--muted))]">
+          {t('auth.termsNotice')}{' '}
+          <Link href="/legal/terms" className="underline hover:text-[rgb(var(--text))]">{t('auth.terms')}</Link>
+          {' · '}
+          <Link href="/legal/privacy" className="underline hover:text-[rgb(var(--text))]">{t('auth.privacy')}</Link>
+        </p>
       </div>
     );
   }
