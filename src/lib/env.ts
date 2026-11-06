@@ -17,6 +17,8 @@ const envSchema = z.object({
   // Transactional e-mail through Resend. Without it the one-time code is shown in a SIMULATED mailbox.
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('Kaonashi <onboarding@resend.dev>'),
+  // Contact address shown on /legal/privacy and /legal/terms.
+  PRIVACY_CONTACT_EMAIL: z.string().optional(),
   // Size of the generated demo history (days). Larger = more "big data", slower first seed.
   SEED_DAYS: z.coerce.number().int().min(7).max(365).default(120),
   APP_BASE_URL: z.string().default('http://localhost:3000'),

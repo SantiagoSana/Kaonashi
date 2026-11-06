@@ -45,7 +45,7 @@ export interface AppContextType {
   refreshSession: () => Promise<any>;
   logout: () => Promise<void>;
   can: (permission: string) => boolean;
-  config: { demoMode: boolean; backend: string; ephemeral: boolean; googleClientId: string | null; emailSimulated: boolean } | null;
+  config: { demoMode: boolean; backend: string; ephemeral: boolean; googleClientId: string | null; emailSimulated: boolean; privacyContact?: string | null } | null;
 
   // Translation helper
   t: (keyPath: string, params?: Record<string, string | number>) => string;

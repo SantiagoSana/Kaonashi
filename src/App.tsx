@@ -18,6 +18,7 @@ import { Unsubscribe } from './pages/Unsubscribe';
 import { StaffLogin } from './pages/auth/StaffLogin';
 import { CustomerLogin } from './pages/auth/CustomerLogin';
 import { Account } from './pages/Account';
+import { Legal } from './pages/Legal';
 
 // Admin Pages
 import { AdminLayout } from './pages/admin/AdminLayout';
@@ -155,6 +156,12 @@ export function App() {
                 <Route path="/reservations" component={Reservations} />
                 <Route path="/rewards" component={Rewards} />
                 <Route path="/account" component={Account} />
+                <Route path="/legal/privacy">
+                  <Legal kind="privacy" />
+                </Route>
+                <Route path="/legal/terms">
+                  <Legal kind="terms" />
+                </Route>
                 <Route path="/redeem" component={Redeem} />
                 <Route path="/u/:token" component={Unsubscribe} />
 
