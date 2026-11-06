@@ -23,7 +23,7 @@ export interface CookieOptions {
 
 export function getCookieName(kind: CookieKind): string {
   const env = getEnv();
-  const isProd = env.APP_ENV === 'production';
+  const isProd = env.APP_ENV === 'production' || Boolean(process.env.VERCEL);
   const prefix = isProd ? '__Host-' : '';
 
   switch (kind) {
@@ -51,7 +51,8 @@ export function getCookieName(kind: CookieKind): string {
 export function cookieOptions(kind: CookieKind): CookieOptions {
   const env = getEnv();
   const isProd = env.APP_ENV === 'production';
-  const isEmbedded = env.EMBEDDED_PREVIEW === true || (env.EMBEDDED_PREVIEW === 'auto' && !isProd);
+  const onVercel = Boolean(process.env.VERCEL);
+  const isEmbedded = env.EMBEDDED_PREVIEW === true || (env.EMBEDDED_PREVIEW === 'auto' && !isProd && !onVercel);
 
   // Default max ages
   let maxAgeMs = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -77,11 +78,12 @@ export function cookieOptions(kind: CookieKind): CookieOptions {
     };
   }
 
-  if (isProd) {
+  if (isProd || onVercel) {
     return {
       httpOnly: isHttpOnly,
       secure: true,
-      sameSite: kind === 'attr' ? 'lax' : 'strict',
+      // Lax keeps the session when guests arrive from a camera app or an e-mail link.
+      sameSite: 'lax',
       path: '/',
       maxAge: maxAgeMs,
     };

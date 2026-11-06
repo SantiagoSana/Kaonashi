@@ -27,7 +27,7 @@ export const OrderTracking: React.FC = () => {
   // Fetch initial order
   useEffect(() => {
     if (!orderId) return;
-    fetch(`/api/orders/${orderId}`)
+    fetch(`/api/orders/${orderId}?t=${encodeURIComponent(new URLSearchParams(window.location.search).get('t') || '')}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.order) setOrder(d.order);
@@ -36,7 +36,7 @@ export const OrderTracking: React.FC = () => {
       .catch(() => setLoading(false));
 
     // Connect to real-time SSE stream (§0.1 item 11, §8)
-    const eventSource = new EventSource('/api/stream/orders');
+    const eventSource = new EventSource(`/api/stream/orders?id=${encodeURIComponent(orderId || '')}&t=${encodeURIComponent(new URLSearchParams(window.location.search).get('t') || '')}`);
     eventSource.addEventListener('order_update', (e) => {
       try {
         const updated: Order = JSON.parse(e.data);

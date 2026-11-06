@@ -1,3 +1,5 @@
+> **Note (Nov 2026):** the app now deploys to Vercel with Neon Postgres. See [`DEPLOY_VERCEL.md`](DEPLOY_VERCEL.md). The notes below describe the original AI Studio preview.
+
 # Kaonashi Setup in Google AI Studio
 
 This guide explains how to run, configure, and deploy the Kaonashi Phygital Platform in Google AI Studio Build mode.

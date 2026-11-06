@@ -47,9 +47,15 @@ export type Permission =
   | 'branding:manage'
   | 'users:manage'
   | 'audit:read'
-  | 'audit:verify';
+  | 'audit:verify'
+  | 'analytics:sales'
+  | 'analytics:btl'
+  | 'analytics:customers'
+  | 'analytics:inventory'
+  | 'leads:read'
+  | 'demo:reset';
 
-const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
+export const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
   sysmaster: [
     'menu:read',
     'menu:create',
@@ -88,6 +94,12 @@ const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
     'users:manage',
     'audit:read',
     'audit:verify',
+    'analytics:sales',
+    'analytics:btl',
+    'analytics:customers',
+    'analytics:inventory',
+    'leads:read',
+    'demo:reset',
   ],
   kitchen_manager: [
     'menu:read',
@@ -97,6 +109,7 @@ const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
     'orders:read',
     'kds:full',
     'reservations:read',
+    'analytics:inventory',
   ],
   marketing_manager: [
     'menu:read',
@@ -113,6 +126,9 @@ const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
     'costs:manage',
     'data_hub:export_metrics',
     'branding:read',
+    'analytics:btl',
+    'analytics:customers',
+    'leads:read',
   ],
   ops_subadmin: [
     'menu:read',
@@ -131,6 +147,8 @@ const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
     'campaigns:read',
     'logistics:manage',
     'data_hub:import_sales',
+    'analytics:sales',
+    'analytics:inventory',
   ],
   reception: [
     'menu:read',

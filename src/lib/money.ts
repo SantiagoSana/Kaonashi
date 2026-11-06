@@ -22,6 +22,8 @@ export interface FormatMoneyOptions {
   locale: Locale;
   fxRates?: Record<DisplayCurrency, number>;
   showIndicativeNotice?: boolean;
+  /** Short form for chart axes and KPI tiles, e.g. "$4,1 mil M". */
+  compact?: boolean;
 }
 
 export interface MoneyValue {
@@ -41,6 +43,7 @@ export function formatMoney(
   options: FormatMoneyOptions
 ): MoneyValue {
   const { branchCurrency, displayCurrency, locale, fxRates = DEFAULT_FX_RATES } = options;
+  const compact = options.compact === true;
   const isConverted = branchCurrency !== displayCurrency;
 
   let displayMinor = amountMinor;
@@ -63,8 +66,9 @@ export function formatMoney(
   const formatter = new Intl.NumberFormat(locale === 'ja' ? 'ja-JP' : locale === 'en' ? 'en-US' : 'es-CO', {
     style: 'currency',
     currency: displayCurrency,
-    minimumFractionDigits: exp,
-    maximumFractionDigits: exp,
+    ...(compact
+      ? { notation: 'compact' as const, maximumFractionDigits: 1 }
+      : { minimumFractionDigits: exp, maximumFractionDigits: exp }),
   });
 
   const formattedBase = formatter.format(valueForFormatter);

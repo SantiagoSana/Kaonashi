@@ -23,8 +23,21 @@ As required by Master Build Prompt v7 (§0 Platform Adaptation Clause), this doc
   - In production (`APP_ENV=production`), cookies use `SameSite=Strict` for sessions, `Lax` for attribution, and `__Host-` prefix.
   - `/api/auth/cookie-probe` detects third-party cookie blocking and renders a prominent "Open in a new tab" banner if needed.
 
-## 4. Multi-backend DataStore
-- Implemented `DataStore` interface with:
-  1. `MemoryDataStore`: Complete transactional in-memory store with counters, compound filtering, and pub/sub for SSE.
-  2. `FirestoreDataStore`: Cloud Firestore server-side repository driver.
-- Configured via `DATA_BACKEND=auto|firestore|memory` (defaults to auto fallback to memory in zero-config dev).
+## 4. Data backend: Postgres instead of Firestore
+- **Prompt target:** Firestore + in-memory DataStore.
+- **Adaptation (Nov 2026):** the app is deployed on Vercel, where an in-memory store loses data between invocations. All data now lives in **Postgres**: Neon (`DATABASE_URL`) in production, PGlite (Postgres compiled to WASM, in-process) for local development and tests, so the same SQL runs everywhere.
+- Entities are JSONB documents in `docs(collection, id, data)` with expression indexes on queried fields; sessions, rate limits, one-time-code challenges and the audit chain have their own tables (`src/server/db.ts`).
+- Analytics are SQL aggregations over raw records (`src/server/analytics.ts`), not client-side arrays.
+- Transactions with `SELECT … FOR UPDATE` protect coupon caps, stock and order numbering.
+
+## 5. Hosting: Vercel Build Output API
+- `scripts/build-vercel.mjs` builds the Vite SPA into `.vercel/output/static` and bundles the Express API with esbuild into one Node 22 function (`.vercel/output/functions/__kns.func`). `/api/*` and `/r/*` route to it; everything else falls back to the SPA.
+- Realtime: SSE endpoints poll Postgres every 1.5 s and close after ~50 s; browsers reconnect with `Last-Event-ID`. This works across serverless instances.
+- Vercel Cron calls `/api/cron/tick` daily with `Authorization: Bearer $CRON_SECRET`.
+
+## 6. Customer Google sign-in
+- **Prompt target:** Firebase Authentication.
+- **Adaptation:** Google Identity Services directly (`GOOGLE_CLIENT_ID`); the ID token is verified server-side against Google's JWKS (issuer, audience, `email_verified`). No Firebase project is needed. Without a client id, demo mode offers a clearly labelled simulated chooser.
+
+## 7. One-time-code e-mail
+- Resend (`RESEND_API_KEY`) as the `EmailProvider`; without it the code is shown in a "SIMULATED MAILBOX" panel on `/account/verify`.

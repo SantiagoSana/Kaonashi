@@ -154,7 +154,7 @@ export const ReservationsAdmin: React.FC = () => {
         <div className="bg-[rgb(var(--surface))] border border-white/5 rounded-2xl p-4 space-y-1">
           <span className="text-[11px] font-bold text-[rgb(var(--muted))] uppercase">Barra Omakase</span>
           <div className="text-xl font-bold text-[#D4AF37]">
-            {reservations.filter((r) => r.area === 'omakase_counter').length} turnos
+            {reservations.filter((r) => r.area === 'omakase_bar').length} turnos
           </div>
         </div>
         <div className="bg-[rgb(var(--surface))] border border-white/5 rounded-2xl p-4 space-y-1">
