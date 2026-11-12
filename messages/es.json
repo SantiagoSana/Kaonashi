@@ -281,7 +281,9 @@
     "forbidden": "Tu rol no tiene acceso a esta sección.",
     "backToPanel": "Volver al panel",
     "terms": "Términos",
-    "privacy": "Privacidad"
+    "privacy": "Privacidad",
+    "emailSendFailed": "No pudimos enviar el correo. Revisa la dirección o inténtalo en un minuto.",
+    "emailNotConfigured": "El acceso por correo no está disponible en este momento. Usa Google o compra como invitado."
   },
   "account": {
     "title": "Mi cuenta",

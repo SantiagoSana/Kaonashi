@@ -27,7 +27,9 @@ const GoogleG = () => (
 /** /account/login (step 1) and /account/verify (step 2). Step 2 only renders with a live challenge. */
 export const CustomerLogin: React.FC<{ step: 'login' | 'verify' }> = ({ step }) => {
   const [, setLocation] = useLocation();
-  const { t, config, session, sessionLoaded, refreshSession, showNotification, logout } = useApp();
+  const { t, config, session, sessionLoaded, refreshSession, showNotification, logout, locale } = useApp();
+  const errorKey = (code?: string) =>
+    code === 'EMAIL_INVALID' ? 'emailInvalid' : code === 'EMAIL_SEND_FAILED' ? 'emailSendFailed' : code === 'EMAIL_NOT_CONFIGURED' ? 'emailNotConfigured' : code === 'RATE_LIMITED' ? 'tooManyAttempts' : 'networkError';
   const returnTo = safeReturnTo(new URLSearchParams(window.location.search).get('returnTo'), '/account');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -110,9 +112,9 @@ export const CustomerLogin: React.FC<{ step: 'login' | 'verify' }> = ({ step }) 
     if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email.trim())) return setError('emailInvalid');
     setPending(true);
     try {
-      const r = await fetch('/api/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      const r = await fetch('/api/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, locale }) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) setError(d.error === 'EMAIL_INVALID' ? 'emailInvalid' : 'networkError');
+      if (!r.ok) setError(errorKey(d.error));
       else setLocation(`/account/verify?returnTo=${encodeURIComponent(returnTo)}`);
     } catch {
       setError('networkError');
@@ -124,10 +126,11 @@ export const CustomerLogin: React.FC<{ step: 'login' | 'verify' }> = ({ step }) 
   const resend = async () => {
     setPending(true);
     setError(null);
-    const r = await fetch('/api/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+    const r = await fetch('/api/auth/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ locale }) });
     setPending(false);
     const d = await r.json().catch(() => ({}));
     if (r.status === 429) setError(d.error === 'RESEND_LIMIT' ? 'resendLimit' : 'networkError');
+    else if (!r.ok) setError(errorKey(d.error));
     const c = await (await fetch('/api/auth/otp/challenge')).json();
     if (c.challenge) setChallenge(c.challenge);
   };

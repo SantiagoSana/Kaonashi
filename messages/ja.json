@@ -281,7 +281,9 @@
     "forbidden": "この権限ではアクセスできません。",
     "backToPanel": "パネルに戻る",
     "terms": "利用規約",
-    "privacy": "プライバシー"
+    "privacy": "プライバシー",
+    "emailSendFailed": "メールを送信できませんでした。アドレスを確認するか、1分後に再試行してください。",
+    "emailNotConfigured": "現在メールでのログインはご利用いただけません。Googleまたはゲストとしてご利用ください。"
   },
   "account": {
     "title": "マイアカウント",

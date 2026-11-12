@@ -281,7 +281,9 @@
     "forbidden": "Your role cannot access this section.",
     "backToPanel": "Back to the panel",
     "terms": "Terms",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "emailSendFailed": "We couldn't send the e-mail. Check the address or try again in a minute.",
+    "emailNotConfigured": "E-mail sign-in is not available right now. Use Google or check out as a guest."
   },
   "account": {
     "title": "My account",

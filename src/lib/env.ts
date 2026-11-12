@@ -16,6 +16,14 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   // Transactional e-mail through Resend. Without it the one-time code is shown in a SIMULATED mailbox.
   RESEND_API_KEY: z.string().optional(),
+  // Gmail as sender (no own domain needed): your Gmail address + a 16-character App Password.
+  GMAIL_USER: z.string().optional(),
+  GMAIL_APP_PASSWORD: z.string().optional(),
+  // Any other SMTP server (Outlook, Zoho, Brevo, your host...). Used when GMAIL_* is not set.
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default('Kaonashi <onboarding@resend.dev>'),
   // Contact address shown on /legal/privacy and /legal/terms.
   PRIVACY_CONTACT_EMAIL: z.string().optional(),

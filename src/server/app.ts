@@ -16,7 +16,7 @@ import { getStore, Store } from './store';
 import { resetDemoData } from './seed';
 import {
   audit, verifyAuditChain, loadSession, requirePerm, requireCustomer, startSession, endSession, rateLimit, tooMany,
-  clearRate, ipHashOf, setCookie, clearCookie, hashOtp, sendEmail, emailIsSimulated, verifyGoogleIdToken,
+  clearRate, ipHashOf, setCookie, clearCookie, hashOtp, sendEmail, emailIsSimulated, emailProvider, otpEmail, verifyGoogleIdToken,
   normalizeEmail, normalizePhone, safeReturnTo,
 } from './security';
 import { parseRange, salesAnalytics, customerAnalytics, btlAnalytics, inventoryAnalytics, effectiveStatus } from './analytics';
@@ -264,9 +264,20 @@ export async function createApp() {
       if (prev.resends_left <= 0) return res.status(429).json({ error: 'RESEND_LIMIT' });
       if (Date.now() - new Date(prev.last_sent_at).getTime() < 30000) return res.status(429).json({ error: 'RESEND_COOLDOWN', retryAfterSeconds: 30 });
     }
+    const simulated = emailIsSimulated();
+    if (!simulated && emailProvider() === 'none') {
+      // Outside demo mode the code must never be shown on screen: refuse instead.
+      return res.status(503).json({ error: 'EMAIL_NOT_CONFIGURED' });
+    }
     const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     const id = isResend ? prev.id : crypto.randomBytes(18).toString('base64url');
-    const simulated = emailIsSimulated();
+    if (!simulated) {
+      // Send first: only a code that actually left is stored, so a failed send never strands the guest.
+      const locale = ['es', 'en', 'ja'].includes(req.body?.locale) ? req.body.locale : 'es';
+      const mail = otpEmail(code, locale);
+      const sent = await sendEmail(email, mail.subject, mail.html, mail.text);
+      if (!sent) return res.status(502).json({ error: 'EMAIL_SEND_FAILED' });
+    }
     if (isResend) {
       await store.sql(`UPDATE login_challenges SET code_hash = $2, resends_left = resends_left - 1, last_sent_at = now(), attempts_left = 5, simulated_code = $3 WHERE id = $1`, [id, hashOtp(code), simulated ? code : null]);
     } else {
@@ -274,9 +285,6 @@ export async function createApp() {
         `INSERT INTO login_challenges (id, email, code_hash, expires_at, attempts_left, resends_left, last_sent_at, simulated_code) VALUES ($1, $2, $3, $4, 5, 3, now(), $5)`,
         [id, email, hashOtp(code), new Date(Date.now() + 10 * 60000).toISOString(), simulated ? code : null]
       );
-    }
-    if (!simulated) {
-      await sendEmail(email, `Tu código de acceso Kaonashi: ${code}`, `<div style="font-family:sans-serif"><h2>Kaonashi</h2><p>Tu código de acceso es:</p><p style="font-size:28px;letter-spacing:6px"><b>${code}</b></p><p>Vence en 10 minutos. Si no lo pediste, ignora este correo.</p></div>`);
     }
     setCookie(res, 'challenge', id, 10 * 60000);
     // Identical response whether or not an account exists. The code itself is only returned in simulated mode.
