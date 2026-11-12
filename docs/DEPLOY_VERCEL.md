@@ -50,7 +50,7 @@ Para un histórico más chico o más grande, define `SEED_DAYS` (7–365) antes 
 - `https://TU-PROYECTO.vercel.app/login` → acceso del personal (`kaonashi_sysmaster` + tu `ENV_MASTER_SEED`).
 - `/admin/analytics` → **Análisis de datos** (ventas, marketing BTL, clientes, inventario).
 - `/account/login` → clientes: código por e-mail o Google.
-- `/api/health` → muestra `"backend":"neon"` y el número de registros por colección.
+- `/api/health` → responde `{"ok":true}`. Con sesión de sysmaster abierta muestra además `"backend":"neon"` y el número de registros por colección.
 
 Para comprobar el circuito completo desde tu computador:
 

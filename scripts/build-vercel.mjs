@@ -7,6 +7,31 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Content-Security-Policy: only our origin, Google Fonts and Google Identity Services (sign-in button).
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' https://accounts.google.com/gsi/client",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://accounts.google.com/gsi/",
+  "frame-src https://accounts.google.com/gsi/",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+  'upgrade-insecure-requests',
+].join('; ');
+export const SECURITY_HEADERS = {
+  'content-security-policy': CSP,
+  'x-frame-options': 'DENY',
+  'x-content-type-options': 'nosniff',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'permissions-policy': 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+  // Google sign-in opens a popup that must be able to talk back to this page.
+  'cross-origin-opener-policy': 'same-origin-allow-popups',
+};
+
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const out = path.join(root, '.vercel/output');
 fs.rmSync(out, { recursive: true, force: true });
@@ -43,6 +68,10 @@ fs.writeFileSync(
     {
       version: 3,
       routes: [
+        // V-01: security headers on every response (static SPA, API and QR resolver).
+        { src: '^/(.*)$', headers: SECURITY_HEADERS, continue: true },
+        // V-02: the HTML shell is never stored by shared caches; hashed assets stay immutable.
+        { src: '^/(?!assets/|api/|r/)(.*)$', headers: { 'cache-control': 'private, no-cache' }, continue: true },
         { src: '^/assets/(.*)$', headers: { 'cache-control': 'public, max-age=31536000, immutable' }, continue: true },
         { src: '^/(api/.*|r/.*)$', dest: '/__kns?__p=/$1' },
         { handle: 'filesystem' },

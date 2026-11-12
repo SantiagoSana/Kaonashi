@@ -39,6 +39,8 @@ export async function createApp() {
     res.setHeader('x-request-id', rid);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     if (req.path.startsWith('/api/')) res.setHeader('Cache-Control', 'private, no-store');
     next();
@@ -64,9 +66,14 @@ export async function createApp() {
   const perm = (...p: Permission[]) => requirePerm(getStore, ...p);
 
   // ------------------------------------------------------------------ health / boot
-  api.get('/health', h(async (_req, res) => {
+  // V-03: anonymous callers only learn that the service is up. Backend type and record counts
+  // (useful for reconnaissance) are returned only to signed-in staff with analytics access.
+  api.get('/health', h(async (req, res) => {
     const store = await S();
     const db = await store.db();
+    await store.sql('SELECT 1');
+    const a = req.auth;
+    if (!a || a.kind !== 'staff' || !a.permissions.some((p) => p.startsWith('analytics:'))) return res.json({ ok: true });
     const counts = await store.sql(`SELECT collection, count(*)::int AS n FROM docs GROUP BY 1 ORDER BY 2 DESC`);
     res.json({ ok: true, backend: db.kind, ephemeral: db.ephemeral, demo: env.DEMO_MODE, counts });
   }));
