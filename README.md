@@ -8,7 +8,7 @@ Restaurante japonés de alta gama donde el marketing físico (portavasos, flyers
 
 - **Login real y seguro**
   - Personal: usuario y contraseña (scrypt), sesiones guardadas en Postgres y revocables, bloqueo progresivo tras 5 intentos fallidos (429 + `Retry-After`), roles con permisos verificados en el servidor en cada ruta.
-  - Clientes: código de 6 dígitos por e-mail (Resend, o buzón simulado en demo) y **Google** (Google Identity Services, token verificado en el servidor). Comprar como invitado siempre funciona.
+  - Clientes: código de 6 dígitos por e-mail (Gmail, cualquier SMTP o Resend; buzón simulado solo en demo) y **Google** (Google Identity Services, token verificado en el servidor). Comprar como invitado siempre funciona.
   - Cerrar sesión revoca la sesión en el servidor y sincroniza las demás pestañas.
 - **Análisis de datos** (`/admin/analytics`): todo se calcula con SQL sobre los registros crudos.
   - **Ventas y demanda:** ingresos diarios BTL vs orgánico, mapa de calor día × hora con cocineros sugeridos, matriz BCG del menú con acción sugerida, ingresos por categoría.
@@ -106,6 +106,6 @@ Pendiente o simulado:
 
 - **Pagos:** Stripe no está conectado; el pago en línea es simulado y el pago en el local queda `unpaid`.
 - **TOTP (MFA) del personal:** no implementado; las cuentas usan solo contraseña.
-- **Correos y Google** funcionan de verdad solo al configurar `RESEND_API_KEY` y `GOOGLE_CLIENT_ID`.
+- **Correos y Google** funcionan de verdad solo al configurar el envío de correo (Gmail con `GMAIL_USER` + `GMAIL_APP_PASSWORD`, SMTP o Resend) y `GOOGLE_CLIENT_ID`.
 - **Pantallas heredadas de la versión de AI Studio:** Personalización visual, Centro de Datos y Generador de QR conservan su interfaz original; sus llamadas a la API ya están protegidas, pero no se auditaron a fondo.
 - **Instalación:** `npm install` necesita `--legacy-peer-deps` por un conflicto de versiones entre Vite 8 y esbuild (ya configurado en `vercel.json`).

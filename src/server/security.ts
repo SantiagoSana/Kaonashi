@@ -258,30 +258,105 @@ export function hashOtp(code: string) {
   return crypto.createHmac('sha256', getEnv().OTP_PEPPER).update(code).digest('hex');
 }
 
-export function emailIsSimulated() {
-  return !getEnv().RESEND_API_KEY;
+export type EmailProvider = 'resend' | 'smtp' | 'none';
+
+export function emailProvider(): EmailProvider {
+  const env = getEnv();
+  if (env.RESEND_API_KEY) return 'resend';
+  if ((env.GMAIL_USER && env.GMAIL_APP_PASSWORD) || (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS)) return 'smtp';
+  return 'none';
 }
 
-export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+/** The code is shown on screen only in demo mode with no provider. Production never shows it. */
+export function emailIsSimulated() {
+  return emailProvider() === 'none' && getEnv().DEMO_MODE;
+}
+
+let smtpTransport: any = null;
+async function getSmtp() {
+  if (smtpTransport) return smtpTransport;
   const env = getEnv();
-  if (!env.RESEND_API_KEY) return false;
+  const nodemailer = (await import('nodemailer')).default;
+  const gmail = Boolean(env.GMAIL_USER && env.GMAIL_APP_PASSWORD);
+  const port = gmail ? 465 : env.SMTP_PORT || 587;
+  smtpTransport = nodemailer.createTransport({
+    host: gmail ? 'smtp.gmail.com' : env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: gmail
+      ? { user: env.GMAIL_USER!.trim(), pass: env.GMAIL_APP_PASSWORD!.replace(/\s+/g, '') } // Google shows it in groups of 4
+      : { user: env.SMTP_USER!, pass: env.SMTP_PASS! },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+  return smtpTransport;
+}
+
+function fromAddress(): string {
+  const env = getEnv();
+  const defaultFrom = 'Kaonashi <onboarding@resend.dev>';
+  // With Gmail the sender must be the authenticated account; keep a friendly display name.
+  if (emailProvider() === 'smtp' && env.GMAIL_USER && (env.EMAIL_FROM === defaultFrom || !env.EMAIL_FROM.includes(env.GMAIL_USER))) {
+    return `Kaonashi <${env.GMAIL_USER.trim()}>`;
+  }
+  return env.EMAIL_FROM;
+}
+
+export async function sendEmail(to: string, subject: string, html: string, text: string): Promise<boolean> {
+  const env = getEnv();
+  const provider = emailProvider();
+  if (provider === 'none') return false;
+  if (provider === 'smtp') {
+    try {
+      const t = await getSmtp();
+      await t.sendMail({ from: fromAddress(), to, subject, html, text });
+      return true;
+    } catch (err: any) {
+      // Never log the password; nodemailer errors only carry code/response.
+      console.error('[email] smtp send failed', err?.code, err?.responseCode, String(err?.response || err?.message || '').slice(0, 200));
+      smtpTransport = null;
+      return false;
+    }
+  }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: env.EMAIL_FROM, to: [to], subject, html }),
+      body: JSON.stringify({ from: fromAddress(), to: [to], subject, html, text }),
       signal: ctrl.signal,
     });
-    if (!r.ok) console.error('[email] resend responded', r.status, await r.text().catch(() => ''));
+    if (!r.ok) console.error('[email] resend responded', r.status, (await r.text().catch(() => '')).slice(0, 200));
     return r.ok;
   } catch (err) {
-    console.error('[email] send failed', err);
+    console.error('[email] resend send failed', (err as Error)?.message);
     return false;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** One-time-code e-mail in the guest's language. */
+export function otpEmail(code: string, locale: string) {
+  const L = {
+    es: { subject: `Tu código de acceso Kaonashi: ${code}`, hello: 'Tu código de acceso es:', expires: 'Vence en 10 minutos.', ignore: 'Si no lo pediste, ignora este correo: nadie puede entrar sin este código.' },
+    en: { subject: `Your Kaonashi sign-in code: ${code}`, hello: 'Your sign-in code is:', expires: 'It expires in 10 minutes.', ignore: "If you didn't request it, ignore this e-mail: nobody can sign in without this code." },
+    ja: { subject: `Kaonashi ログインコード: ${code}`, hello: 'ログインコード：', expires: '有効期限は10分です。', ignore: '心当たりがない場合はこのメールを無視してください。' },
+  }[locale === 'en' || locale === 'ja' ? locale : 'es'];
+  const html = `<!doctype html><html><body style="margin:0;background:#0B0C10;font-family:Arial,Helvetica,sans-serif;color:#F4F1EA">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
+<table role="presentation" width="100%" style="max-width:420px;background:#14171D;border-radius:16px;border:1px solid #2a2d33">
+<tr><td style="padding:28px 24px">
+<p style="margin:0 0 16px;font-size:20px;font-weight:bold;letter-spacing:2px">KAONASHI <span style="color:#D4AF37">顔</span></p>
+<p style="margin:0 0 8px;font-size:14px;color:#c9c5bc">${L.hello}</p>
+<p style="margin:0 0 16px;font-size:34px;font-weight:bold;letter-spacing:10px;font-family:Consolas,Menlo,monospace;color:#D4AF37">${code}</p>
+<p style="margin:0 0 6px;font-size:13px;color:#c9c5bc">${L.expires}</p>
+<p style="margin:0;font-size:12px;color:#8a867e">${L.ignore}</p>
+</td></tr></table></td></tr></table></body></html>`;
+  const text = `${L.hello} ${code}\n${L.expires}\n${L.ignore}`;
+  return { subject: L.subject, html, text };
 }
 
 // ------------------------------------------------------------------ Google ID tokens (Google Identity Services)

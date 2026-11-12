@@ -69,10 +69,20 @@ VERIFY_STAFF_PASS='tu ENV_MASTER_SEED' npm run verify
 Sin `GOOGLE_CLIENT_ID`, en modo demo aparece un botón **Google (SIMULADO)** con dos cuentas de prueba.
 
 ### Código por e-mail
-1. Crea una cuenta en <https://resend.com>, verifica tu dominio y genera una API key.
-2. En Vercel: `RESEND_API_KEY` y `EMAIL_FROM` (por ejemplo `Kaonashi <hola@tudominio.com>`).
 
-Sin `RESEND_API_KEY`, el código aparece en la pantalla dentro de un recuadro **BUZÓN SIMULADO**.
+**Opción A: con tu Gmail (no necesitas dominio).** Gmail permite unos 500 correos al día.
+1. Usa una cuenta Gmail personal (las cuentas de universidad o empresa suelen tener bloqueada esta opción). Lo ideal es crear una solo para el restaurante, por ejemplo `kaonashi.restaurante@gmail.com`.
+2. Activa la **verificación en dos pasos** en <https://myaccount.google.com/security>. Sin ella no aparece la opción del paso 3.
+3. Entra a <https://myaccount.google.com/apppasswords>, escribe un nombre (`Kaonashi Vercel`) y pulsa **Crear**. Copia la contraseña de 16 letras que aparece; solo se muestra una vez.
+4. En Vercel crea `GMAIL_USER` (la dirección de Gmail) y `GMAIL_APP_PASSWORD` (las 16 letras; los espacios no importan). Haz **Redeploy**.
+
+**Opción B: Resend** (si tienes dominio propio): crea una cuenta en <https://resend.com>, verifica tu dominio, genera una API key y define `RESEND_API_KEY` y `EMAIL_FROM` (por ejemplo `Kaonashi <hola@tudominio.com>`).
+
+**Opción C: otro servidor SMTP** (Outlook, Zoho, Brevo…): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` y `EMAIL_FROM`.
+
+Sin ninguna opción configurada, en modo demo el código aparece en pantalla dentro de un recuadro **BUZÓN SIMULADO**. Con `DEMO_MODE=false`, el acceso por correo se desactiva en lugar de mostrar el código.
+
+Si el correo no llega: revisa la carpeta de spam y, en Vercel, **Deployments → (el último) → Logs**. Busca líneas `[email]`; el error `535` significa usuario o contraseña de aplicación incorrectos.
 
 ## 5. Pasar de demo a producción
 
